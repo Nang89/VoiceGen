@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoiceGen — Free AI Text to Speech</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0e;--surface:#141416;--surface2:#1c1c1f;--border:#27272b;
+  --text:#f2efe9;--muted:#5c5a56;--accent:#d4a853;--accent-dim:#2a2010;
+  --accent-border:#4a3818;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--blue-dim:#0d1f3c;--blue-border:#1e3a5f;--radius:14px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:3rem 1.25rem 5rem}
+header{text-align:center;margin-bottom:2rem;animation:up .5s ease both}
+header h1{font-family:'Instrument Serif',serif;font-size:clamp(2.2rem,5vw,3.5rem);letter-spacing:-.02em}
+header h1 em{font-style:italic;color:var(--accent)}
+header p{margin-top:.5rem;font-size:.8rem;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:.4rem;margin-top:.8rem;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);font-size:.68rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .85rem;border-radius:99px}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+
+/* ── Mode toggle ── */
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:100%;max-width:680px;margin-bottom:.75rem;animation:up .5s ease both}
+.mode-btn{flex:1;padding:.55rem;border:none;border-radius:7px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.mode-btn.on{background:var(--accent);color:#0c0a06}
+
+/* ── Model selector ── */
+.model-selector-wrap{width:100%;max-width:680px;margin-bottom:.75rem;animation:up .5s ease both}
+.model-selector-label{font-size:.65rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;display:block}
+.model-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:100%}
+.model-btn{flex:1;padding:.55rem .75rem;border:none;border-radius:7px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:.15rem}
+.model-btn .model-name{font-size:.82rem;font-weight:500}
+.model-btn .model-desc{font-size:.65rem;opacity:.7}
+.model-btn.on{background:var(--blue-dim);border:1px solid var(--blue-border);color:var(--blue)}
+.model-badge{display:inline-block;font-size:.58rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .45rem;border-radius:99px;margin-top:.1rem}
+.model-badge.v25{background:#2a2010;color:var(--accent)}
+.model-badge.v31{background:var(--blue-dim);color:var(--blue)}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:680px;margin-bottom:.75rem;animation:up .5s ease both}
+.label{font-size:.65rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;display:block}
+.key-row{display:flex;gap:.5rem}
+input[type="password"],input[type="text"]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);outline:none;transition:border-color .2s}
+input:focus{border-color:var(--accent)}
+input::placeholder{color:var(--muted)}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:.6rem .85rem;font-size:.8rem;font-family:'Inter',sans-serif;transition:color .2s,border-color .2s}
+.icon-btn:hover{color:var(--text);border-color:#3a3a3e}
+.hint{font-size:.7rem;color:var(--muted);margin-top:.5rem}
+.hint a{color:var(--accent);text-decoration:none}
+
+/* Preview cache status */
+.preview-status{font-size:.7rem;color:var(--muted);margin-top:.6rem;display:flex;align-items:center;gap:.4rem}
+.preview-status .ps-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink .8s infinite}
+.preview-status .ps-dot.done{background:var(--green);animation:none}
+
+/* ── Pills ── */
+.perf-grid,.lang-grid{display:flex;flex-wrap:wrap;gap:.5rem}
+.p-btn,.l-btn{background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--muted);cursor:pointer;padding:.4rem .9rem;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;transition:all .15s}
+.p-btn:hover,.l-btn:hover{border-color:#3a3a3e;color:var(--text)}
+.p-btn.on,.l-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+
+/* ── Voice dropdown row ── */
+.voice-select-row{display:flex;gap:.5rem;align-items:center}
+.voice-select-row select{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:'Inter',sans-serif;font-size:.82rem;color:var(--text);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c5a56' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .75rem center;padding-right:2rem;transition:border-color .2s}
+.voice-select-row select:focus{border-color:var(--accent)}
+.v-preview-btn{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;padding:.3rem .55rem;font-size:.7rem;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.v-preview-btn:hover{border-color:var(--accent);color:var(--accent)}
+.v-preview-btn.ready{border-color:#2a4a2a;color:var(--green)}
+.v-preview-btn.loading{opacity:.4;cursor:not-allowed}
+
+/* Model info banner */
+.model-info{display:flex;align-items:center;gap:.6rem;background:var(--blue-dim);border:1px solid var(--blue-border);border-radius:8px;padding:.6rem .85rem;margin-bottom:.75rem;font-size:.72rem;color:var(--blue)}
+.model-info svg{flex-shrink:0;opacity:.8}
+.model-info.v25{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+
+/* Director's Note (3.1 only) */
+.director-wrap{display:none}
+.director-wrap.show{display:block}
+.director-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
+.director-field label{font-size:.62rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.35rem}
+.director-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .75rem;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--text);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c5a56' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .65rem center;padding-right:1.75rem;transition:border-color .2s}
+.director-field select:focus{border-color:var(--blue)}
+
+/* Conv speaker director note */
+.sp-director{display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)}
+.sp-director.show{display:block}
+.sp-director label{font-size:.6rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:.3rem}
+.sp-director select,.sp-director input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:.45rem .65rem;font-family:'Inter',sans-serif;font-size:.78rem;color:var(--text);outline:none;margin-bottom:.35rem;appearance:none}
+.sp-director select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c5a56' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .55rem center;padding-right:1.5rem}
+.sp-director select:focus,.sp-director input:focus{border-color:var(--blue)}
+
+/* ── Textarea ── */
+textarea{width:100%;min-height:170px;resize:vertical;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.85rem;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:300;color:var(--text);line-height:1.65;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--accent)}
+textarea::placeholder{color:var(--muted)}
+.meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:.4rem}
+
+/* ── Conversation mode ── */
+.conv-speakers{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.conv-speaker-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem}
+.conv-speaker-card .slabel{font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;display:block}
+.conv-speaker-card select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--text);outline:none;cursor:pointer;appearance:none;margin-top:.4rem}
+.conv-speaker-card input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--text);outline:none}
+.conv-speaker-card input:focus,.conv-speaker-card select:focus{border-color:var(--accent)}
+.conv-hint{font-size:.72rem;color:var(--muted);line-height:1.6;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem}
+.conv-hint code{color:var(--accent);font-family:monospace}
+
+/* ── Generate button ── */
+.gen-btn{width:100%;max-width:680px;padding:.9rem;background:var(--accent);color:#0c0a06;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:background .15s,transform .1s,opacity .2s;animation:up .5s .2s ease both}
+.gen-btn:hover:not(:disabled){background:#c09640}
+.gen-btn:active:not(:disabled){transform:scale(.99)}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── Status ── */
+.status-card{width:100%;max-width:680px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-top:.75rem;display:none}
+.status-card.show{display:block}
+.status-row{display:flex;align-items:center;gap:.6rem;font-size:.85rem;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:blink 1s infinite}
+.dot.green{background:var(--green);animation:none}
+.dot.red{background:var(--red);animation:none}
+.dot.still{animation:none}
+.prog-bg{height:2px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:.85rem}
+.prog-fill{height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .5s ease}
+.info{font-size:.7rem;color:var(--muted);margin-top:.5rem;line-height:1.5}
+.waveform{display:flex;align-items:center;gap:3px;height:32px;margin-top:.85rem}
+.bar{width:3px;background:var(--accent);border-radius:99px;opacity:.7}
+
+/* ── Player ── */
+.player-card{width:100%;max-width:680px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:.75rem;display:none}
+.player-card.show{display:block}
+audio{width:100%;margin-top:.75rem;border-radius:8px}
+.dl-btn{display:inline-flex;align-items:center;gap:.4rem;margin-top:.85rem;background:var(--accent);color:#0c0a06;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;padding:.6rem 1.2rem;cursor:pointer;transition:background .15s}
+.dl-btn:hover{background:#c09640}
+
+/* ── Download Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.75rem;width:90%;max-width:400px;transform:translateY(20px);transition:transform .2s}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal h3{font-family:'Instrument Serif',serif;font-size:1.3rem;margin-bottom:.4rem}
+.modal p{font-size:.78rem;color:var(--muted);margin-bottom:1.1rem}
+.modal input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;font-family:'Inter',sans-serif;font-size:.9rem;color:var(--text);outline:none;margin-bottom:.3rem}
+.modal input:focus{border-color:var(--accent)}
+.modal-ext{font-size:.72rem;color:var(--muted);margin-bottom:1.25rem;display:block}
+.modal-actions{display:flex;gap:.6rem}
+.modal-cancel{flex:1;padding:.65rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Inter',sans-serif;font-size:.88rem;cursor:pointer;transition:all .15s}
+.modal-cancel:hover{color:var(--text);border-color:#3a3a3e}
+.modal-dl{flex:2;padding:.65rem;background:var(--accent);color:#0c0a06;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .15s}
+.modal-dl:hover{background:#c09640}
+
+footer{margin-top:2.5rem;font-size:.7rem;color:var(--muted);text-align:center;line-height:1.8;max-width:420px}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Voice<em>Gen</em></h1>
+  <p>Free · Unlimited</p>
+  <div class="pill"><span class="pill-dot"></span> WAV Export</div>
+</header>
+
+<!-- Mode Toggle -->
+<div class="mode-toggle">
+  <button class="mode-btn on" id="modeSingle">🎙 Single Voice</button>
+  <button class="mode-btn" id="modeConv">💬 Conversation</button>
+</div>
+
+<!-- Model Selector -->
+<div class="model-selector-wrap">
+  <span class="model-selector-label">TTS Model</span>
+  <div class="model-toggle">
+    <button class="model-btn on" id="modelBtn25" onclick="setModel('2.5')">
+      <span class="model-name">Gemini 2.5 Flash TTS</span>
+    </button>
+    <button class="model-btn" id="modelBtn31" onclick="setModel('3.1')">
+      <span class="model-name">Gemini 3.1 Flash TTS</span>
+    </button>
+  </div>
+</div>
+
+<!-- API Key -->
+<div class="card" style="animation-delay:.05s">
+  <span class="label">Gemini API Key</span>
+  <div class="key-row">
+    <input type="password" id="apiKey" placeholder="AIzaSy… paste your free key here" autocomplete="off">
+    <button class="icon-btn" id="toggleKey">Show</button>
+  </div>
+  <p class="hint">Free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> — no credit card needed.</p>
+  <div class="preview-status" id="previewStatus" style="display:none">
+    <span class="ps-dot" id="psDot"></span>
+    <span id="psText">Generating voice previews…</span>
+  </div>
+</div>
+
+<!-- ══ SINGLE VOICE MODE ══ -->
+<div id="singleMode">
+
+  <!-- Performance (2.5 only) -->
+  <div class="card" id="perfCard" style="animation-delay:.1s">
+    <span class="label">1 · Voice Performance</span>
+    <div class="perf-grid" id="perfGrid">
+      <button class="p-btn on" data-perf="Professional">Professional</button>
+      <button class="p-btn" data-perf="Exciting">Exciting</button>
+      <button class="p-btn" data-perf="Calm">Calm</button>
+      <button class="p-btn" data-perf="Narrative">Narrative</button>
+      <button class="p-btn" data-perf="Happy">Happy</button>
+      <button class="p-btn" data-perf="Serious">Serious</button>
+      <button class="p-btn" data-perf="Whisper">Whisper</button>
+      <button class="p-btn" data-perf="Sad">Sad</button>
+      <button class="p-btn" data-perf="Sarcastic">Sarcastic</button>
+    </div>
+  </div>
+
+  <!-- Language -->
+  <div class="card" style="animation-delay:.13s">
+    <span class="label">2 · Language</span>
+    <div class="lang-grid" id="langGrid">
+      <button class="l-btn on" data-lang="English">🇺🇸 English</button>
+      <button class="l-btn" data-lang="Mandarin Chinese in Beijing accent">🇨🇳 Mandarin Chinese</button>
+      <button class="l-btn" data-lang="Japanese">🇯🇵 Japanese</button>
+      <button class="l-btn" data-lang="Burmese">🇲🇲 Burmese</button>
+    </div>
+  </div>
+
+  <!-- Voice Character -->
+  <div class="card" style="animation-delay:.16s">
+    <span class="label">3 · Voice Character</span>
+    <div class="voice-select-row">
+      <select id="voiceSelect"></select>
+      <button class="v-preview-btn" id="singlePreviewBtn">▶ Preview</button>
+    </div>
+
+    <!-- Director's Note (3.1 only) -->
+    <div class="director-wrap" id="directorWrap" style="margin-top:1rem">
+      <div class="director-grid">
+        <div class="director-field">
+          <label>Style / Performance</label>
+          <select id="dnStyle">
+            <option value="">— None —</option>
+            <optgroup label="Professional">
+              <option value="Professional narrator, clear and authoritative">Professional</option>
+              <option value="Documentary narrator, measured and informative">Documentary</option>
+              <option value="News anchor, crisp and neutral delivery">News Anchor</option>
+              <option value="Audiobook narrator, warm and engaging">Audiobook</option>
+            </optgroup>
+            <optgroup label="Finance & Education">
+              <option value="Finance educator, confident and trustworthy, explains complex topics simply">Finance Educator</option>
+              <option value="Calm explainer, patient and clear, teaching tone">Calm Explainer</option>
+              <option value="Business presenter, polished and energetic">Business Presenter</option>
+            </optgroup>
+            <optgroup label="Expressive">
+              <option value="Excited and enthusiastic, high energy delivery">Exciting</option>
+              <option value="Warm and friendly, conversational and approachable">Friendly</option>
+              <option value="Serious and grave, weighty delivery">Serious</option>
+              <option value="Calm and soothing, gentle meditative tone">Calm / Soothing</option>
+              <option value="Happy and upbeat, bright sunny delivery">Happy</option>
+              <option value="Sad and somber, heavy emotional weight">Sad</option>
+              <option value="Suspenseful and dramatic, building tension">Dramatic</option>
+              <option value="Sarcastic and dry, understated wit">Sarcastic</option>
+            </optgroup>
+            <optgroup label="Special">
+              <option value="Whispering softly, intimate and hushed">Whisper</option>
+              <option value="Vivid storyteller, imaginative and immersive narration">Storyteller</option>
+              <option value="Radio DJ, energetic and charismatic">Radio DJ</option>
+              <option value="ASMR style, soft breathy and gentle">ASMR</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="director-field">
+          <label>Pace</label>
+          <select id="dnPace">
+            <option value="">— None —</option>
+            <option value="Very slow deliberate pace, long pauses between sentences">Very Slow</option>
+            <option value="Slow and clear, pausing between sentences">Slow</option>
+            <option value="Natural comfortable pace">Natural</option>
+            <option value="Brisk and energetic pace">Fast</option>
+            <option value="High-speed delivery, fluid with no dead air">Very Fast</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text -->
+  <div class="card" style="animation-delay:.20s">
+    <span class="label">4 · Text to Speak</span>
+    <textarea id="txt" placeholder="Paste your text here…"></textarea>
+    <div class="meta"><span id="wc">0 words</span><span id="cc">0 chars</span></div>
+  </div>
+
+</div><!-- end singleMode -->
+
+<!-- ══ CONVERSATION MODE ══ -->
+<div id="convMode" style="display:none">
+
+  <div class="card">
+    <span class="label">Speaker Setup</span>
+    <div class="conv-speakers">
+      <div class="conv-speaker-card">
+        <span class="slabel">Speaker 1</span>
+        <input type="text" id="sp1name" value="Speaker1" style="display:none">
+        <select id="sp1voice"></select>
+        <div class="sp-director" id="sp1Director">
+          <select id="sp1Style">
+            <option value="">Style — None</option>
+            <option value="Professional narrator, clear and authoritative">Professional</option>
+            <option value="Finance educator, confident and trustworthy">Finance Educator</option>
+            <option value="Warm and friendly, conversational">Friendly</option>
+            <option value="Excited and enthusiastic, high energy">Exciting</option>
+            <option value="Calm and soothing, gentle tone">Calm</option>
+            <option value="Serious and grave, weighty delivery">Serious</option>
+            <option value="Audiobook narrator, warm and engaging">Audiobook</option>
+            <option value="Radio DJ, energetic and charismatic">Radio DJ</option>
+          </select>
+          <input type="text" id="sp1Accent" style="display:none">
+        </div>
+      </div>
+      <div class="conv-speaker-card">
+        <span class="slabel">Speaker 2</span>
+        <input type="text" id="sp2name" value="Speaker2" style="display:none">
+        <select id="sp2voice"></select>
+        <div class="sp-director" id="sp2Director">
+          <select id="sp2Style">
+            <option value="">Style — None</option>
+            <option value="Professional narrator, clear and authoritative">Professional</option>
+            <option value="Finance educator, confident and trustworthy">Finance Educator</option>
+            <option value="Warm and friendly, conversational">Friendly</option>
+            <option value="Excited and enthusiastic, high energy">Exciting</option>
+            <option value="Calm and soothing, gentle tone">Calm</option>
+            <option value="Serious and grave, weighty delivery">Serious</option>
+            <option value="Audiobook narrator, warm and engaging">Audiobook</option>
+            <option value="Radio DJ, energetic and charismatic">Radio DJ</option>
+          </select>
+          <input type="text" id="sp2Accent" style="display:none">
+        </div>
+      </div>
+    </div>
+    <span class="label" style="margin-top:.75rem">Language</span>
+    <div class="lang-grid" id="convLangGrid" style="margin-bottom:.75rem">
+      <button class="l-btn on" data-lang="English">🇺🇸 English</button>
+      <button class="l-btn" data-lang="Mandarin Chinese in Beijing accent">🇨🇳 Mandarin Chinese</button>
+      <button class="l-btn" data-lang="Japanese">🇯🇵 Japanese</button>
+      <button class="l-btn" data-lang="Burmese">🇲🇲 Burmese</button>
+    </div>
+    <span class="label">Speaking Pace</span>
+    <div class="perf-grid" id="convPaceGrid" style="margin-bottom:.75rem">
+      <button class="p-btn" data-pace="Speak slowly and clearly, pausing between sentences.">🐢 Slow</button>
+      <button class="p-btn on" data-pace="Speak at a natural, comfortable pace.">🚶 Normal</button>
+      <button class="p-btn" data-pace="Speak at a brisk, energetic pace.">🏃 Fast</button>
+    </div>
+    <span class="label">Script</span>
+    <textarea id="convTxt" style="min-height:220px" placeholder="Speaker1: Hello, welcome to the show!&#10;Speaker2: Thanks for having me, great to be here.&#10;Speaker1: Let's dive right in…"></textarea>
+    <div class="meta"><span id="convWc">0 words</span><span id="convCc">0 chars</span></div>
+    <div class="meta" style="margin-top:.6rem">
+      <span style="color:var(--muted)">⚠️ REST TTS · up to ~8 min per request</span>
+      <span id="reqCounter" style="font-size:.7rem"></span>
+    </div>
+  </div>
+
+</div><!-- end convMode -->
+
+<!-- Generate Button -->
+<button class="gen-btn" id="genBtn">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+  Generate Audio
+</button>
+
+<!-- Status -->
+<div class="status-card" id="statusCard">
+  <div class="status-row">
+    <div class="dot" id="dot"></div>
+    <span id="statusMsg">Connecting…</span>
+  </div>
+  <div class="prog-bg"><div class="prog-fill" id="prog"></div></div>
+  <div class="info" id="info"></div>
+  <div class="waveform" id="waveform" style="display:none"></div>
+</div>
+
+<!-- Player -->
+<div class="player-card" id="playerCard">
+  <span class="label">Generated Audio</span>
+  <audio id="audio" controls></audio><br>
+  <div style="display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap">
+    <button class="dl-btn" id="dlBtn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download WAV
+    </button>
+    <button class="dl-btn" id="dlJsonBtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Download Timestamps JSON
+    </button>
+  </div>
+  <div id="timestampPreview" style="display:none;margin-top:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.75rem;max-height:160px;overflow-y:auto;font-size:.7rem;color:var(--muted);font-family:monospace;line-height:1.7"></div>
+</div>
+
+<!-- Download Modal -->
+<div class="modal-overlay" id="dlModal">
+  <div class="modal">
+    <h3>Download Audio</h3>
+    <p>Give your file a name before saving</p>
+    <input type="text" id="dlName" placeholder="my-voiceover">
+    <span class="modal-ext">.wav</span>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="dlCancel">Cancel</button>
+      <button class="modal-dl" id="dlConfirm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Your API key connects directly to Google's Gemini API.<br>
+  Nothing stored on any server · Free tier · Subject to Google's terms.
+</footer>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────
+const WS_URL     = key => `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
+const TTS_URL25  = key => `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-tts:generateContent?key=${key}`;
+const LIVE_MODEL_25 = 'models/gemini-3.1-flash-live-preview';
+const LIVE_MODEL_31 = 'models/gemini-3.1-flash-live-preview';
+// Note: gemini-2.5-flash-live-preview was deprecated May 2026
+const SR = 24000;
+
+// ── Voice lists ──────────────────────────────────────────────────
+const VOICES_25 = [
+  { value:'Aoede',  label:'Aoede — Breezy · Natural',        group:'Female' },
+  { value:'Kore',   label:'Kore — Warm · Firm',              group:'Female' },
+  { value:'Leda',   label:'Leda — Youthful · Clear',         group:'Female' },
+  { value:'Zephyr', label:'Zephyr — Bright · Airy',          group:'Female' },
+  { value:'Puck',   label:'Puck — Upbeat · Expressive',      group:'Male'   },
+  { value:'Charon', label:'Charon — Deep · Calm',            group:'Male'   },
+  { value:'Fenrir', label:'Fenrir — Excitable · Bold',       group:'Male'   },
+  { value:'Orus',   label:'Orus — Confident · Rich',         group:'Male'   },
+];
+
+const VOICES_31 = [
+  { value:'Achernar', label:'Achernar — Soft · Higher pitch',      group:'Female' },
+  { value:'Aoede',    label:'Aoede — Breezy · Middle pitch',       group:'Female' },
+  { value:'Autonoe',  label:'Autonoe — Bright · Middle pitch',     group:'Female' },
+  { value:'Callirrhoe',label:'Callirrhoe — Easy-going · Middle',   group:'Female' },
+  { value:'Despina',  label:'Despina — Smooth · Middle pitch',     group:'Female' },
+  { value:'Erinome',  label:'Erinome — Clear · Middle pitch',      group:'Female' },
+  { value:'Gacrux',   label:'Gacrux — Mature · Middle pitch',      group:'Female' },
+  { value:'Kore',     label:'Kore — Warm · Middle pitch',          group:'Female' },
+  { value:'Leda',     label:'Leda — Youthful · Middle pitch',      group:'Female' },
+  { value:'Pulcherrima',label:'Pulcherrima — Forward · Middle',    group:'Female' },
+  { value:'Sulafat',  label:'Sulafat — Warm · Middle pitch',       group:'Female' },
+  { value:'Vindemiatrix',label:'Vindemiatrix — Gentle · Middle',   group:'Female' },
+  { value:'Zephyr',   label:'Zephyr — Bright · Middle pitch',      group:'Female' },
+  { value:'Achird',   label:'Achird — Friendly · Lower middle',    group:'Male'   },
+  { value:'Algenib',  label:'Algenib — Gravelly · Lower pitch',    group:'Male'   },
+  { value:'Algieba',  label:'Algieba — Smooth · Lower pitch',      group:'Male'   },
+  { value:'Alnilam',  label:'Alnilam — Firm · Lower middle',       group:'Male'   },
+  { value:'Charon',   label:'Charon — Informative · Lower middle', group:'Male'   },
+  { value:'Fenrir',   label:'Fenrir — Excitable · Lower middle',   group:'Male'   },
+  { value:'Iocaste',  label:'Iocaste — Warm · Lower middle',       group:'Male'   },
+  { value:'Izar',     label:'Izar — Confident · Lower middle',     group:'Male'   },
+  { value:'Muninn',   label:'Muninn — Clear · Lower middle',       group:'Male'   },
+  { value:'Orus',     label:'Orus — Firm · Lower middle',          group:'Male'   },
+  { value:'Puck',     label:'Puck — Upbeat · Lower middle',        group:'Male'   },
+  { value:'Rasalgethi',label:'Rasalgethi — Informative · Lower',   group:'Male'   },
+  { value:'Sadachbia', label:'Sadachbia — Lively · Lower middle',  group:'Male'   },
+  { value:'Sadaltager',label:'Sadaltager — Knowledgeable · Lower', group:'Male'   },
+  { value:'Schedar',  label:'Schedar — Even · Lower middle',       group:'Male'   },
+  { value:'Umbriel',  label:'Umbriel — Easy-going · Lower middle', group:'Male'   },
+  { value:'Zubenelgenubi',label:'Zubenelgenubi — Casual · Lower',  group:'Male'   },
+];
+
+// ── State ────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+let mode         = 'single';
+let selectedModel = '2.5'; // '2.5' | '3.1'
+let voice        = 'Aoede';
+let performance  = 'Professional';
+let language     = 'English';
+let convLanguage = 'English';
+let pace         = 'Speak at a natural, comfortable pace.';
+let convPace     = 'Speak at a natural, comfortable pace.';
+let ws           = null;
+let currentAudioUrl = null;
+let waveInterval = null;
+let currentTimestamps = [];
+const previewCache = {};
+
+// ── DOM refs ─────────────────────────────────────────────────────
+const apiKeyEl   = $('apiKey');
+const genBtn     = $('genBtn');
+const statusCard = $('statusCard');
+const dotEl      = $('dot');
+const statusMsg  = $('statusMsg');
+const progEl     = $('prog');
+const infoEl     = $('info');
+const waveformEl = $('waveform');
+const playerCard = $('playerCard');
+const audioEl    = $('audio');
+const dlModal    = $('dlModal');
+
+// ── Populate voice dropdowns ─────────────────────────────────────
+function buildVoiceOptions(voices) {
+  const groups = {};
+  voices.forEach(v => {
+    if (!groups[v.group]) groups[v.group] = [];
+    groups[v.group].push(v);
+  });
+  return Object.entries(groups).map(([g, vs]) =>
+    `<optgroup label="${g}">${vs.map(v => `<option value="${v.value}">${v.label}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+
+function refreshVoiceSelects() {
+  const voices = VOICES_25; // Both 2.5 and 3.1 Live API use the same 8 voices
+  const html = buildVoiceOptions(voices);
+  $('voiceSelect').innerHTML = html;
+  $('sp1voice').innerHTML = html;
+  $('sp2voice').innerHTML = html;
+  voice = voices[0].value;
+  $('voiceSelect').value = voice;
+}
+
+// ── Model switch ─────────────────────────────────────────────────
+function setModel(v) {
+  selectedModel = v;
+  $('modelBtn25').classList.toggle('on', v === '2.5');
+  $('modelBtn31').classList.toggle('on', v === '3.1');
+
+  // Show/hide performance card (2.5 Live API only)
+  $('perfCard').style.display = v === '2.5' ? '' : 'none';
+
+  // Show/hide Director's Note (3.1 only)
+  const show31 = v === '3.1';
+  $('directorWrap').classList.toggle('show', show31);
+  $('sp1Director').classList.toggle('show', show31);
+  $('sp2Director').classList.toggle('show', show31);
+
+  // Refresh voice lists
+  refreshVoiceSelects();
+
+  // Reset preview button
+  $('singlePreviewBtn').textContent = '▶ Preview';
+  $('singlePreviewBtn').classList.remove('ready', 'loading');
+}
+
+// ── Director's Note assembler ────────────────────────────────────
+function buildDirectorNote() {
+  const style = $('dnStyle').value.trim();
+  const pace  = $('dnPace').value.trim();
+  const parts = [];
+  if (style) parts.push(`Style: ${style}.`);
+  if (pace)  parts.push(`Pace: ${pace}.`);
+  return parts.join(' ');
+}
+
+function buildSpDirectorNote(styleId, accentId) {
+  const style = $(styleId).value.trim();
+  const parts = [];
+  if (style) parts.push(`Style: ${style}.`);
+  return parts.join(' ');
+}
+
+// Init
+refreshVoiceSelects();
+
+// ── Mode toggle ───────────────────────────────────────────────────
+$('modeSingle').onclick = () => {
+  mode = 'single';
+  $('modeSingle').classList.add('on');
+  $('modeConv').classList.remove('on');
+  $('singleMode').style.display = '';
+  $('convMode').style.display   = 'none';
+  genBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Audio`;
+};
+$('modeConv').onclick = () => {
+  mode = 'conv';
+  $('modeConv').classList.add('on');
+  $('modeSingle').classList.remove('on');
+  $('singleMode').style.display = 'none';
+  $('convMode').style.display   = '';
+  genBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Conversation`;
+};
+
+// ── API key persistence ───────────────────────────────────────────
+const APIKEY_STORAGE = 'vg_gemini_api_key';
+const savedKey = localStorage.getItem(APIKEY_STORAGE);
+if (savedKey) apiKeyEl.value = savedKey;
+apiKeyEl.addEventListener('input', () => {
+  const k = apiKeyEl.value.trim();
+  if (k.length > 20) localStorage.setItem(APIKEY_STORAGE, k);
+  else if (k.length === 0) localStorage.removeItem(APIKEY_STORAGE);
+});
+
+// ── API key: trigger preview pre-generation (2.5 Live only) ──────
+apiKeyEl.addEventListener('change', () => {
+  const key = apiKeyEl.value.trim();
+  if (key.length > 20 && selectedModel === '2.5') preGeneratePreviews(key);
+});
+
+// ── Pre-generate voice previews (2.5 Live API) ───────────────────
+async function preGeneratePreviews(key) {
+  const ps = $('previewStatus');
+  const psDot = $('psDot');
+  const psText = $('psText');
+  ps.style.display = 'flex';
+  psDot.classList.remove('done');
+  const voices = VOICES_25.map(v => v.value);
+  psText.textContent = `Generating voice previews (0/${voices.length})…`;
+  let done = 0;
+  for (const v of voices) {
+    if (previewCache[v]) { done++; continue; }
+    try {
+      const url = await generatePreviewAudio(key, v);
+      if (url) {
+        previewCache[v] = url;
+        if (v === $('voiceSelect').value) {
+          $('singlePreviewBtn').textContent = '▶ Ready';
+          $('singlePreviewBtn').classList.add('ready');
+        }
+      }
+    } catch(e) {}
+    done++;
+    psText.textContent = `Generating voice previews (${done}/${voices.length})…`;
+  }
+  psDot.classList.add('done');
+  psText.textContent = 'All voice previews ready — tap ▶ to hear';
+}
+
+async function generatePreviewAudio(key, voiceName) {
+  const liveModel = selectedModel === '3.1' ? LIVE_MODEL_31 : LIVE_MODEL_25;
+  return new Promise((resolve) => {
+    const pcmBufs = [];
+    const pw = new WebSocket(WS_URL(key));
+    pw.onopen = () => {
+      pw.send(JSON.stringify({
+        setup: {
+          model: liveModel,
+          generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } },
+          systemInstruction: { parts: [{ text: `You are a professional audiobook narrator. Read text EXACTLY as written, word for word. Do NOT summarize, skip, or paraphrase anything.` }] }
+        }
+      }));
+    };
+    pw.onmessage = async event => {
+      const raw = typeof event.data === 'string' ? event.data : await event.data.text();
+      let msg; try { msg = JSON.parse(raw); } catch(e) { return; }
+      if ('setupComplete' in msg) {
+        pw.send(JSON.stringify({ realtimeInput: { text: `Hi, I'm ${voiceName}. I'll be your voice for YouTube videos, podcasts, and more.` } }));
+      }
+      if (msg.serverContent?.modelTurn?.parts)
+        for (const p of msg.serverContent.modelTurn.parts)
+          if (p.inlineData?.data) pcmBufs.push(b64buf(p.inlineData.data));
+      if (msg.serverContent?.turnComplete) {
+        pw.close();
+        if (pcmBufs.length > 0) {
+          const wav = buildWav(pcmBufs, SR);
+          resolve(URL.createObjectURL(new Blob([wav], { type:'audio/wav' })));
+        } else resolve(null);
+      }
+    };
+    pw.onerror = () => resolve(null);
+    setTimeout(() => { try{pw.close();}catch(e){} resolve(null); }, 20000);
+  });
+}
+
+// ── Voice preview button ─────────────────────────────────────────
+function playPreview(voiceName, btn) {
+  const key = apiKeyEl.value.trim();
+  if (!key) { alert('Paste your API key first.'); return; }
+
+  // For 3.1 REST preview — generate a quick REST preview
+  if (selectedModel === '3.1') {
+    btn.textContent = '⏳';
+    btn.classList.add('loading');
+    generate31RestPreview(key, voiceName).then(url => {
+      btn.classList.remove('loading');
+      if (url) {
+        previewCache['31_'+voiceName] = url;
+        btn.textContent = '▶ Ready';
+        btn.classList.add('ready');
+        new Audio(url).play();
+      } else {
+        btn.textContent = '▶ Preview';
+        alert('Preview failed — check your API key.');
+      }
+    });
+    return;
+  }
+
+  // 2.5 Live preview
+  if (previewCache[voiceName]) { new Audio(previewCache[voiceName]).play(); return; }
+  btn.textContent = '⏳';
+  btn.classList.add('loading');
+  generatePreviewAudio(key, voiceName).then(url => {
+    btn.classList.remove('loading');
+    if (url) {
+      previewCache[voiceName] = url;
+      btn.textContent = '▶ Ready';
+      btn.classList.add('ready');
+      new Audio(url).play();
+    } else btn.textContent = '▶ Preview';
+  });
+}
+
+async function generate31RestPreview(key, voiceName) {
+  try {
+    const body = {
+      contents:[{role:'user',parts:[{text:`Hi, I'm ${voiceName}. I'm ready to narrate your content with clarity and expression.`}]}],
+      generationConfig:{
+        responseModalities:['AUDIO'],
+        speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}}
+      }
+    };
+    const res = await fetch(TTS_URL31(key), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if (!res.ok) return null;
+    const data = await res.json();
+    const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!b64) return null;
+    const wav = buildWav([b64buf(b64)], SR);
+    return URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));
+  } catch(e) { return null; }
+}
+
+$('voiceSelect').onchange = () => {
+  voice = $('voiceSelect').value;
+  $('singlePreviewBtn').textContent = '▶ Preview';
+  $('singlePreviewBtn').classList.remove('ready');
+};
+$('singlePreviewBtn').onclick = () => playPreview($('voiceSelect').value, $('singlePreviewBtn'));
+
+// ── Perf / Lang pickers ───────────────────────────────────────────
+$('convPaceGrid').onclick = e => {
+  const b = e.target.closest('.p-btn'); if (!b) return;
+  document.querySelectorAll('#convPaceGrid .p-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); convPace = b.dataset.pace;
+};
+$('perfGrid').onclick = e => {
+  const b = e.target.closest('.p-btn'); if (!b) return;
+  document.querySelectorAll('#perfGrid .p-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); performance = b.dataset.perf;
+};
+$('langGrid').onclick = e => {
+  const b = e.target.closest('.l-btn'); if (!b) return;
+  document.querySelectorAll('#langGrid .l-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); language = b.dataset.lang;
+};
+$('convLangGrid').onclick = e => {
+  const b = e.target.closest('.l-btn'); if (!b) return;
+  document.querySelectorAll('#convLangGrid .l-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); convLanguage = b.dataset.lang;
+};
+
+// ── Key toggle ────────────────────────────────────────────────────
+$('toggleKey').onclick = () => {
+  const h = apiKeyEl.type === 'password';
+  apiKeyEl.type = h ? 'text' : 'password';
+  $('toggleKey').textContent = h ? 'Hide' : 'Show';
+};
+
+// ── Text stats ────────────────────────────────────────────────────
+$('txt').oninput = () => {
+  const t = $('txt').value.trim();
+  $('wc').textContent = (t ? t.split(/\s+/).length : 0) + ' words';
+  $('cc').textContent = $('txt').value.length + ' chars';
+};
+$('convTxt').oninput = () => {
+  const t = $('convTxt').value.trim();
+  $('convWc').textContent = (t ? t.split(/\s+/).length : 0) + ' words';
+  $('convCc').textContent = $('convTxt').value.length + ' chars';
+};
+
+// ── Helpers ───────────────────────────────────────────────────────
+const show = (el, v) => el.classList.toggle('show', v);
+const setP = p => progEl.style.width = Math.min(p,100)+'%';
+function setStatus(msg, type='') {
+  statusMsg.textContent = msg;
+  dotEl.className = 'dot'+(type?' '+type:'');
+}
+function startWaveform() {
+  waveformEl.innerHTML = '';
+  waveformEl.style.display = 'flex';
+  const bars = Array.from({length:20}, () => {
+    const b = document.createElement('div');
+    b.className = 'bar'; b.style.height = '4px';
+    waveformEl.appendChild(b); return b;
+  });
+  waveInterval = setInterval(() => {
+    bars.forEach(b => { b.style.height=(4+Math.random()*24)+'px'; b.style.transition='height 0.1s ease'; });
+  }, 120);
+}
+function stopWaveform() { clearInterval(waveInterval); waveformEl.style.display='none'; }
+function splitChunks(text, max=200) {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  // Detect if text is mostly Chinese characters
+  const chineseChars = (cleaned.match(/[\u4e00-\u9fff]/g) || []).length;
+  const isChinese = cleaned.length > 0 && chineseChars / cleaned.replace(/\s/g,'').length > 0.3;
+
+  if (isChinese) {
+    // Chinese: split by character count at sentence boundaries
+    const sents = cleaned.match(/[^。！？]+[。！？]*/g) || [cleaned];
+    const out = []; let cur = '';
+    for (const s of sents) {
+      if ((cur+s).length > max && cur) { out.push(cur.trim()); cur = s; } else cur += s;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out.length ? out : [cleaned];
+  } else {
+    // English/other: split by word count at sentence boundaries
+    const words = cleaned.split(/\s+/);
+    const out = []; let cur = [];
+    for (const w of words) {
+      cur.push(w);
+      if (cur.length >= max) {
+        const chunk = cur.join(' ');
+        const lastPunct = Math.max(chunk.lastIndexOf('. '), chunk.lastIndexOf('! '), chunk.lastIndexOf('? '));
+        if (lastPunct > chunk.length * 0.5) {
+          out.push(chunk.slice(0, lastPunct + 1).trim());
+          const remaining = chunk.slice(lastPunct + 1).trim();
+          cur = remaining ? remaining.split(/\s+/) : [];
+        } else {
+          out.push(chunk.trim());
+          cur = [];
+        }
+      }
+    }
+    if (cur.length) out.push(cur.join(' ').trim());
+    return out.length ? out : [cleaned];
+  }
+}
+function b64buf(b64) {
+  const bin=atob(b64),buf=new ArrayBuffer(bin.length),u8=new Uint8Array(buf);
+  for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return buf;
+}
+function buildWav(bufs, sr) {
+  const total=bufs.reduce((s,c)=>s+c.byteLength,0);
+  const buf=new ArrayBuffer(44+total);
+  const v=new DataView(buf);
+  const s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
+  s(0,'RIFF');v.setUint32(4,36+total,true);s(8,'WAVE');s(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);
+  v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);s(36,'data');
+  v.setUint32(40,total,true);
+  let off=44;
+  for(const c of bufs){new Uint8Array(buf,off,c.byteLength).set(new Uint8Array(c));off+=c.byteLength;}
+  return buf;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ── Download modal ────────────────────────────────────────────────
+$('dlBtn').onclick = () => {
+  $('dlName').value = `voicegen-${voice.toLowerCase()}`;
+  dlModal.classList.add('show');
+  setTimeout(() => $('dlName').focus(), 100);
+};
+$('dlCancel').onclick = () => dlModal.classList.remove('show');
+dlModal.onclick = e => { if (e.target===dlModal) dlModal.classList.remove('show'); };
+$('dlName').onkeydown = e => { if (e.key==='Enter') $('dlConfirm').click(); };
+$('dlConfirm').onclick = () => {
+  const name = ($('dlName').value.trim() || `voicegen-${Date.now()}`) + '.wav';
+  const a = document.createElement('a');
+  a.href = currentAudioUrl; a.download = name; a.click();
+  dlModal.classList.remove('show');
+};
+
+function setAudioReady(url, defaultName) {
+  currentAudioUrl = url;
+  audioEl.src = url;
+  $('dlName').value = defaultName;
+  show(playerCard, true);
+}
+function resetBtn() {
+  genBtn.disabled = false;
+  const label = mode === 'conv' ? 'Generate Conversation' : 'Generate Audio';
+  genBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> ${label}`;
+}
+
+// ── Main generate dispatcher ──────────────────────────────────────
+genBtn.onclick = () => {
+  if (mode === 'conv') generateConversation();
+  else generateSingleLive();
+};
+
+// ── Single Voice — Live API WebSocket (both 2.5 and 3.1) ─────────
+async function generateSingleLive() {
+  const key  = apiKeyEl.value.trim();
+  const text = $('txt').value.trim();
+  if (!key)  { alert('Paste your Gemini API key first.'); return; }
+  if (!text) { alert('Enter some text to speak.'); return; }
+  if (ws) try { ws.close(); } catch(e) {}
+
+  const liveModel = selectedModel === '3.1' ? LIVE_MODEL_31 : LIVE_MODEL_25;
+  const directorNote = selectedModel === '3.1' ? buildDirectorNote() : '';
+  const allPcmBufs = [];
+  let totalAudioChunks = 0;
+
+  genBtn.disabled = true;
+  genBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Generating…`;
+  show(statusCard, true); show(playerCard, false);
+  setP(0); infoEl.textContent=''; stopWaveform();
+
+  const chunks = splitChunks(text);
+  const total  = chunks.length;
+  const modelLabel = selectedModel === '3.1' ? 'Gemini 3.1 Flash Live' : 'Gemini 2.5 Flash Live';
+  infoEl.textContent = `Model: ${modelLabel} · ${total} part(s)`;
+  setStatus(`Starting… 0/${total} parts done`);
+
+  for (let i = 0; i < total; i++) {
+    setStatus(`Connecting for part ${i+1}/${total}…`);
+    setP(Math.round((i/total)*90));
+    const chunkPcm = await processChunkLive(key, chunks[i], i, total, liveModel, directorNote);
+    if (chunkPcm === null) { setStatus(`Error on part ${i+1} — stopping`, 'red'); resetBtn(); return; }
+    if (chunkPcm.length === 0) {
+      setStatus(`⚠️ Part ${i+1}/${total} returned NO audio — skipping`, 'still');
+      infoEl.textContent = `Chunk ${i+1} got 0 audio buffers. Text: "${chunks[i].slice(0,40)}…"`;
+      await sleep(500);
+      continue;
+    }
+    allPcmBufs.push(...chunkPcm);
+    totalAudioChunks += chunkPcm.length;
+    setStatus(`Part ${i+1}/${total} done`);
+    setP(Math.round(((i+1)/total)*90));
+    if (i < total-1) await sleep(300);
+  }
+
+  stopWaveform();
+  if (allPcmBufs.length === 0) { setStatus('No audio received', 'red'); resetBtn(); return; }
+  setStatus('Building WAV…', 'still'); setP(95);
+  const wav  = buildWav(allPcmBufs, SR);
+  const blob = new Blob([wav], {type:'audio/wav'});
+  const url  = URL.createObjectURL(blob);
+  currentTimestamps = generateTimestamps(text, allPcmBufs, SR, 'single');
+  showTimestampPreview(currentTimestamps);
+  setAudioReady(url, `voicegen-${voice.toLowerCase()}`);
+  setP(100);
+  setStatus(`Done! ${(wav.byteLength/1024).toFixed(0)} KB · ${total} parts merged`, 'green');
+  infoEl.textContent = `${modelLabel} · ${total} parts · ${(wav.byteLength/1024).toFixed(0)} KB · ${currentTimestamps.length} sentences`;
+  resetBtn();
+}
+
+// ── Process a single chunk via Live API WebSocket ─────────────────
+function processChunkLive(key, chunkText, idx, total, liveModel, directorNote='') {
+  return new Promise(resolve => {
+    const pcmBufs = []; let setupDone=false; let finished=false;
+    const conn = new WebSocket(WS_URL(key));
+    const timeout = setTimeout(() => {
+      if (!finished) { finished=true; try{conn.close();}catch(e){} resolve(pcmBufs.length>0?pcmBufs:null); }
+    }, 30000);
+
+    conn.onopen = () => {
+      const langInstr = language !== 'English'
+        ? `IMPORTANT: Speak ONLY in ${language} with authentic native pronunciation. No English accent.`
+        : 'Speak in clear native English.';
+      const paceInstr = selectedModel === '3.1'
+        ? ($('dnPace').value || 'Speak at a natural, comfortable pace.')
+        : 'Speak at a natural, comfortable pace.';
+      const dnInstr = directorNote ? `\nDIRECTOR'S NOTES:\n${directorNote}` : '';
+      conn.send(JSON.stringify({
+        setup:{
+          model: liveModel,
+          generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}},
+          systemInstruction:{parts:[{text:`You are a professional audiobook narrator. Read text EXACTLY as written, word for word. Style: ${performance}. ${paceInstr} ${langInstr}${dnInstr}`}]}
+        }
+      }));
+    };
+    conn.onmessage = async event => {
+      let msg; try { const r=typeof event.data==='string'?event.data:await event.data.text(); msg=JSON.parse(r); } catch(e){return;}
+      if ('setupComplete' in msg && !setupDone) {
+        setupDone=true; startWaveform();
+        setStatus(`Part ${idx+1}/${total} · speaking…`);
+        conn.send(JSON.stringify({realtimeInput:{text: chunkText.replace(/\s+/g,' ').trim()}}));
+      }
+      if (msg.serverContent?.modelTurn?.parts)
+        for (const p of msg.serverContent.modelTurn.parts)
+          if (p.inlineData?.data) pcmBufs.push(b64buf(p.inlineData.data));
+      if (msg.serverContent?.turnComplete && !finished) {
+        finished=true; clearTimeout(timeout); try{conn.close();}catch(e){} resolve(pcmBufs);
+      }
+    };
+    conn.onerror = () => { if (!finished){finished=true;clearTimeout(timeout);resolve(null);} };
+    conn.onclose = () => { if (!finished){finished=true;clearTimeout(timeout);resolve(pcmBufs.length>0?pcmBufs:null);} };
+  });
+}
+
+
+// ── Conversation ─────────────────────────────────────────────────
+const COUNTER_KEY='vg_conv_date', USED_KEY='vg_conv_used', MAX_REQ=10;
+const getTodayStr = () => new Date().toISOString().slice(0,10);
+function getRemaining() {
+  const saved=localStorage.getItem(COUNTER_KEY),today=getTodayStr();
+  if (saved!==today){localStorage.setItem(COUNTER_KEY,today);localStorage.setItem(USED_KEY,'0');return MAX_REQ;}
+  return MAX_REQ-parseInt(localStorage.getItem(USED_KEY)||'0');
+}
+function useOneRequest() {
+  const today=getTodayStr();
+  localStorage.setItem(COUNTER_KEY,today);
+  localStorage.setItem(USED_KEY,String(parseInt(localStorage.getItem(USED_KEY)||'0')+1));
+  updateCounterUI();
+}
+function updateCounterUI() {
+  const rem=getRemaining(),el=$('reqCounter');
+  if (!el) return;
+  const color=rem<=2?'var(--red)':rem<=5?'var(--accent)':'var(--green)';
+  el.innerHTML=`<span style="color:${color};font-weight:500">${rem}/${MAX_REQ} requests left today</span>`;
+}
+updateCounterUI();
+
+async function generateConversation() {
+  const key    = apiKeyEl.value.trim();
+  const script = $('convTxt').value.trim();
+  const sp1    = 'Speaker1';
+  const sp2    = 'Speaker2';
+  const v1     = $('sp1voice').value;
+  const v2     = $('sp2voice').value;
+
+  if (!key)   { alert('Paste your Gemini API key first.'); return; }
+  if (!script){ alert('Enter your conversation script.'); return; }
+  if (!script.includes(':')) { alert(`Script must use:\nSpeaker1: Hello!\nSpeaker2: Hi there!`); return; }
+  if (getRemaining()<=0) { alert('You have used all 10 requests for today. Resets at midnight!'); return; }
+
+  genBtn.disabled = true;
+  genBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Generating…`;
+  show(statusCard,true); show(playerCard,false);
+  setP(0); stopWaveform();
+
+  // Conversation uses REST (multi-speaker requires REST endpoint)
+  const ttsUrl = selectedModel === '3.1'
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${key}`
+    : TTS_URL25(key);
+  const modelLabel = selectedModel === '3.1' ? 'Gemini 3.1 Flash TTS' : 'Gemini 2.5 Flash TTS';
+  setStatus(`Sending to ${modelLabel}…`);
+  infoEl.textContent = `Model: ${modelLabel} · Multi-speaker REST API`;
+  setP(20);
+
+  try {
+    const langInstruction = convLanguage !== 'English'
+      ? `IMPORTANT: Speak ONLY in ${convLanguage} with authentic native pronunciation.`
+      : 'Speak in clear native English.';
+
+    const p1 = buildSpDirectorNote('sp1Style', 'sp1Accent');
+    const p2 = buildSpDirectorNote('sp2Style', 'sp2Accent');
+    let profileInstructions = '';
+    if (p1) profileInstructions += `\n${sp1} style: ${p1}`;
+    if (p2) profileInstructions += `\n${sp2} style: ${p2}`;
+
+    const body = {
+      contents:[{role:'user',parts:[{text:`${langInstruction} ${convPace}${profileInstructions}\n\nTTS the following conversation exactly as written:\n${script}`}]}],
+      generationConfig:{
+        responseModalities:['AUDIO'],
+        speechConfig:{
+          multiSpeakerVoiceConfig:{
+            speakerVoiceConfigs:[
+              {speaker:sp1,voiceConfig:{prebuiltVoiceConfig:{voiceName:v1}}},
+              {speaker:sp2,voiceConfig:{prebuiltVoiceConfig:{voiceName:v2}}}
+            ]
+          }
+        }
+      }
+    };
+
+    setP(40);
+    const res = await fetch(ttsUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    setP(70);
+    if (!res.ok) {
+      const errJson=await res.json().catch(()=>({}));
+      const errMsg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(`[${res.status}] ${errMsg}`);
+    }
+    const data=await res.json();
+    const b64=data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!b64) throw new Error(`No audio in response. Full response: ${JSON.stringify(data).slice(0,200)}`);
+
+    setP(90);
+    const pcm=b64buf(b64);
+    const wav=buildWav([pcm],SR);
+    const blob=new Blob([wav],{type:'audio/wav'});
+    const url=URL.createObjectURL(blob);
+    currentTimestamps=generateTimestamps(script,[pcm],SR,'conv',sp1,sp2);
+    showTimestampPreview(currentTimestamps);
+    setAudioReady(url,`conversation-${sp1}-${sp2}`.toLowerCase());
+    setP(100); setStatus('Conversation ready!','green');
+    infoEl.textContent=`${modelLabel} · ${(wav.byteLength/1024).toFixed(0)} KB · ${sp1}(${v1}) + ${sp2}(${v2}) · ${currentTimestamps.length} lines`;
+    useOneRequest();
+  } catch(err) {
+    const msg = err.message || '';
+    const isCors = msg.includes('Load failed') || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+    setStatus('Error: ' + (isCors ? 'CORS blocked — host via GitHub Pages, not a local file' : msg), 'red');
+    infoEl.textContent = isCors
+      ? '⚠️ Browsers block REST API calls from local files. Host this HTML on GitHub Pages or any web server.'
+      : 'Check API key.';
+  }
+  resetBtn();
+}
+
+// ── Timestamps ────────────────────────────────────────────────────
+function generateTimestamps(text, pcmBufs, sr, mode='single', sp1='', sp2='') {
+  const totalBytes=pcmBufs.reduce((s,c)=>s+c.byteLength,0);
+  const totalSecs=totalBytes/(sr*2);
+  let sentences=[];
+  if (mode==='conv') {
+    sentences=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0&&l.includes(':')).map(l=>{
+      const ci=l.indexOf(':');
+      return {speaker:l.slice(0,ci).trim(),text:l.slice(ci+1).trim()};
+    });
+  } else {
+    const raw=text.match(/[^.!?。！？\n]+[.!?。！？\n]*/g)||[text];
+    sentences=raw.map(s=>({speaker:null,text:s.trim()})).filter(s=>s.text.length>0);
+  }
+  if (!sentences.length) return [];
+  const totalChars=sentences.reduce((s,x)=>s+x.text.length,0);
+  let cursor=0;
+  return sentences.map((s,i)=>{
+    const ratio=s.text.length/totalChars;
+    const duration=parseFloat((totalSecs*ratio).toFixed(3));
+    const start=parseFloat(cursor.toFixed(3));
+    const end=parseFloat((cursor+duration).toFixed(3));
+    const entry={index:i+1,start_time:start,end_time:end,duration:parseFloat(duration.toFixed(3)),text:s.text};
+    if (s.speaker) entry.speaker=s.speaker;
+    cursor+=duration;
+    return entry;
+  });
+}
+
+function showTimestampPreview(timestamps) {
+  const el=$('timestampPreview');
+  el.style.display='block';
+  el.innerHTML=timestamps.slice(0,5).map(t=>
+    `<div><span style="color:var(--accent)">[${t.start_time.toFixed(2)}s → ${t.end_time.toFixed(2)}s]</span> ${t.speaker?`<span style="color:#60a5fa">${t.speaker}:</span> `:''}${t.text.slice(0,60)}${t.text.length>60?'…':''}</div>`
+  ).join('')+(timestamps.length>5?`<div style="color:var(--accent);margin-top:.3rem">+ ${timestamps.length-5} more…</div>`:'');
+}
+
+$('dlJsonBtn').onclick = () => {
+  if (!currentTimestamps.length) { alert('Generate audio first.'); return; }
+  const name=($('dlName').value.trim()||'timestamps')+'.json';
+  const json=JSON.stringify({generated_at:new Date().toISOString(),model:`gemini-${selectedModel}-flash-tts`,total_sentences:currentTimestamps.length,total_duration:currentTimestamps[currentTimestamps.length-1]?.end_time||0,sentences:currentTimestamps},null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; a.click();
+};
+</script>
+</body>
+</html>
